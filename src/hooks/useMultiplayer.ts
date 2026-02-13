@@ -12,8 +12,8 @@ export type MultiplayerMessage =
     | { type: 'PLAYER_JOINED'; playerName: string }
     | { type: 'ERROR'; error: string }
     | { type: 'START_GAME'; hostName: string; guestName: string; tileBag: TileData[]; hostRack: TileData[]; guestRack: TileData[]; timerSeconds: number }
-    | { type: 'SUBMIT_MOVE'; board: CellData[][]; score: number; newRack: TileData[]; tileBag: TileData[]; tilesRemaining: number }
-    | { type: 'PASS' }
+    | { type: 'SUBMIT_MOVE'; board: CellData[][]; score: number; newRack: TileData[]; tileBag: TileData[]; tilesRemaining: number; timeLeft: number }
+    | { type: 'PASS'; timeLeft: number }
     | { type: 'TIME_UP'; loserName: string; myScore: number; opponentScore: number }
     | { type: 'LEAVE' };
 

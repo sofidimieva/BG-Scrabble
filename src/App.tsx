@@ -95,7 +95,7 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
   const {
     myTimeLeft,
     opponentTimeLeft,
-    resetMyTimer,
+    setOpponentTime,
     formatTime,
   } = useTimer(handleMyTimeUp, handleOpponentTimeUp, isMyTurn, config.timerSeconds);
 
@@ -139,12 +139,14 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
         case 'SUBMIT_MOVE':
           syncBoard(msg.board, msg.tileBag, msg.tilesRemaining);
           setOpponentScore((prev) => prev + msg.score);
+          setOpponentTime(msg.timeLeft);
           setIsMyTurn(true);
           setMessage(`Опонентът изигра +${msg.score} точки`);
           setTimeout(() => setMessage(null), 2500);
           break;
 
         case 'PASS':
+          setOpponentTime(msg.timeLeft);
           setIsMyTurn(true);
           setMessage('Опонентът пасува');
           setTimeout(() => setMessage(null), 2000);
@@ -261,21 +263,22 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
       newRack: state.playerRack,
       tileBag: state.tileBag,
       tilesRemaining: state.tilesRemaining,
+      timeLeft: myTimeLeft,
     });
 
     setIsMyTurn(false);
     setMessage(`+${score} точки!`);
     setTimeout(() => setMessage(null), 2000);
-  }, [isMyTurn, gameOver, state.boardGrid, state.playerRack, state.tileBag, state.tilesRemaining, validate, submitWord, resetMyTimer, mp]);
+  }, [isMyTurn, gameOver, state.boardGrid, state.playerRack, state.tileBag, state.tilesRemaining, validate, submitWord, myTimeLeft, mp]);
 
   const handlePass = useCallback(() => {
     if (!isMyTurn || gameOver) return;
     recallTiles();
-    mp.sendMessage({ type: 'PASS' });
+    mp.sendMessage({ type: 'PASS', timeLeft: myTimeLeft });
     setIsMyTurn(false);
     setMessage('Пропуснат ход');
     setTimeout(() => setMessage(null), 2000);
-  }, [isMyTurn, gameOver, recallTiles, resetMyTimer, mp]);
+  }, [isMyTurn, gameOver, recallTiles, myTimeLeft, mp]);
 
   const handleExchange = useCallback(() => {
     if (!isMyTurn || gameOver) return;
