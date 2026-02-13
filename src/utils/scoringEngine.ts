@@ -18,7 +18,6 @@ export function calculateScore(
 
     // Determine direction
     const rows = placedTiles.map((t) => t.row);
-    const cols = placedTiles.map((t) => t.col);
     const isHorizontal = new Set(rows).size === 1;
 
     let totalScore = 0;

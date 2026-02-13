@@ -18,7 +18,9 @@ export type MultiplayerMessage =
     | { type: 'LEAVE' };
 
 // ─── Server URL ───────────────────────────────────────────────────
-const WS_URL = `ws://${window.location.hostname}:3001`;
+const WS_URL = import.meta.env.PROD
+    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`
+    : `ws://${window.location.hostname}:3001`;
 
 /**
  * Persistent WebSocket channel manager.

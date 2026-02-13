@@ -1,4 +1,12 @@
 import { WebSocketServer, WebSocket } from 'ws';
+import { createServer } from 'http';
+import { readFileSync, existsSync } from 'fs';
+import { join, extname } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // ─── Types ────────────────────────────────────────────────────────
 interface Room {
@@ -37,11 +45,71 @@ function getRoomForSocket(ws: WebSocket): { code: string; room: Room } | null {
     return null;
 }
 
-// ─── WebSocket Server ─────────────────────────────────────────────
-const PORT = 3001;
-const wss = new WebSocketServer({ port: PORT });
+// ─── MIME types ───────────────────────────────────────────────────
+const MIME_TYPES: Record<string, string> = {
+    '.html': 'text/html',
+    '.js': 'application/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+};
 
-console.log(`🎮 Scrabble WebSocket server running on ws://localhost:${PORT}`);
+// ─── HTTP Server (serves static files) ───────────────────────────
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const DIST_PATH = join(__dirname, '..', 'dist');
+
+const httpServer = createServer((req, res) => {
+    let filePath = req.url === '/' ? '/index.html' : req.url || '/index.html';
+
+    // Remove query strings
+    filePath = filePath.split('?')[0];
+
+    const fullPath = join(DIST_PATH, filePath);
+
+    // Security: prevent directory traversal
+    if (!fullPath.startsWith(DIST_PATH)) {
+        res.writeHead(403);
+        res.end('Forbidden');
+        return;
+    }
+
+    if (existsSync(fullPath)) {
+        const ext = extname(fullPath);
+        const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+        try {
+            const content = readFileSync(fullPath);
+            res.writeHead(200, { 'Content-Type': contentType });
+            res.end(content);
+        } catch (err) {
+            res.writeHead(500);
+            res.end('Internal Server Error');
+        }
+    } else {
+        // For client-side routing, serve index.html for unknown routes
+        const indexPath = join(DIST_PATH, 'index.html');
+        if (existsSync(indexPath)) {
+            const content = readFileSync(indexPath);
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(content);
+        } else {
+            res.writeHead(404);
+            res.end('Not Found');
+        }
+    }
+});
+
+// ─── WebSocket Server (attached to HTTP server) ───────────────────
+const wss = new WebSocketServer({ server: httpServer });
+
+console.log(`🎮 Scrabble server running on http://localhost:${PORT}`);
 
 wss.on('connection', (ws: WebSocket) => {
     console.log('[WS] Client connected');
@@ -126,4 +194,9 @@ wss.on('connection', (ws: WebSocket) => {
         }
         removeRoom(entry.code);
     });
+});
+
+// ─── Start Server ─────────────────────────────────────────────────
+httpServer.listen(PORT, () => {
+    console.log(`✅ Server ready on port ${PORT}`);
 });

@@ -7,6 +7,7 @@
     "dev": "vite",
     "server": "npx tsx server/index.ts",
     "build": "tsc -b && vite build",
+    "start": "node server/index.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
