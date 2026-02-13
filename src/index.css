@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #25d1f4;
+  --color-accent-red: #ff4d4d;
+  --color-background-light: #f5f8f8;
+  --color-background-dark: #101f22;
+  --font-family-display: "Lexend", sans-serif;
+}
+
+body {
+  font-family: "Lexend", sans-serif;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Board grid */
+.scrabble-board {
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  gap: 2px;
+  aspect-ratio: 1 / 1;
+}
+
+.board-cell {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5rem;
+  text-align: center;
+  font-weight: 700;
+  position: relative;
+}
+
+/* Tile spring animation */
+@keyframes tile-pop {
+  0% { transform: scale(0.7); opacity: 0.5; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.tile-placed {
+  animation: tile-pop 0.25s ease-out;
+}
+
+/* Ghost tile overlay */
+.ghost-tile {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Drag overlay */
+.drag-overlay-tile {
+  transform: scale(1.1);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+  z-index: 999;
+}
+
+/* Timer pulse when low */
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.timer-low {
+  animation: pulse-red 1s infinite;
+  color: #ff4d4d;
+}
+
+/* Scrollbar hiding */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
