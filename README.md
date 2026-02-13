@@ -14,9 +14,9 @@ This application uses a **Client-Heavy** architecture where the game logic resid
 graph TD
     subgraph "Frontend (React Application)"
         UI[User Interface]
-        Store[Game State Store<br/>(useGameState)]
-        Rules[Scrabble Logic<br/>(Scoring, Validation)]
-        WS_Client[WebSocket Client<br/>(useMultiplayer)]
+        Store["Game State Store<br/>(useGameState)"]
+        Rules["Scrabble Logic<br/>(Scoring, Validation)"]
+        WS_Client["WebSocket Client<br/>(useMultiplayer)"]
         
         UI --> Store
         Store --> Rules
