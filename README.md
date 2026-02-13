@@ -1,73 +1,97 @@
-# React + TypeScript + Vite
+# 🇧🇬 BG Scrabble (Скрабъл)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A real-time multiplayer implementation of Scrabble (Bulgarian version) built with Modern Web Technologies.
 
-Currently, two official plugins are available:
+![Game Screenshot](https://placehold.co/1200x630/e7f1f4/498e9c?text=BG+Scrabble)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## 🏗 Architecture Overview
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+This application uses a **Client-Heavy** architecture where the game logic resides almost entirely in the browser. The server acts as a lightweight message relay.
 
-## Expanding the ESLint configuration
+```mermaid
+graph TD
+    subgraph "Frontend (React Application)"
+        UI[User Interface]
+        Store[Game State Store<br/>(useGameState)]
+        Rules[Scrabble Logic<br/>(Scoring, Validation)]
+        WS_Client[WebSocket Client<br/>(useMultiplayer)]
+        
+        UI --> Store
+        Store --> Rules
+        Store <--> WS_Client
+    end
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+    subgraph "Backend (Node.js)"
+        WS_Server[WebSocket Server]
+        RoomMgr[Room Manager]
+        
+        WS_Server --> RoomMgr
+    end
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+    PlayerA[Player A] <--> UI
+    WS_Client <== "WebSocket (JSON)" ==> WS_Server
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 1. Frontend ("The Brain")
+- **Tech Stack**: React 19, TypeScript, Vite, TailwindCSS.
+- **Responsibility**: 
+  - Manages the entire game state (Board, Rack, Score).
+  - Validates words and calculates scores using `scoringEngine.ts`.
+  - Handles Drag-and-Drop interactions via `@dnd-kit`.
+  - Sends "actions" (like `SUBMIT_MOVE`) to the opponent.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 2. Backend ("The Pipe")
+- **Tech Stack**: Node.js, `ws` library.
+- **Responsibility**:
+  - **Relay**: Receives a message from Player A and immediately forwards it to Player B.
+  - **Room Management**: Groups sockets into rooms based on a 4-character Game Code.
+  - **Agnostic**: The server *does not know* the rules of Scrabble. It blindly trusts the clients.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## 📂 Project Structure
+
+- **`src/components/`**: UI components (GameBoard, TileRack, Scoreboard).
+- **`src/hooks/`**: Custom hooks for logic separation.
+  - `useGameState.ts`: The core "Redux-like" state machine.
+  - `useMultiplayer.ts`: Handles WebSocket connection and events.
+  - `useWordValidator.ts`: dictionary validation logic.
+- **`server/`**: The Node.js WebSocket server entry point.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v18+)
+- npm
+
+### Installation
+```bash
+npm install
 ```
+
+### Running Locally
+You need **two** terminals:
+
+**Terminal 1 (Frontend)**
+```bash
+npm run dev
+# Runs on http://localhost:5173
+```
+
+**Terminal 2 (Backend)**
+```bash
+npm run server
+# Runs on ws://localhost:3001
+```
+
+## 🌐 Deployment Plan
+
+To deploy this application, you currently need two services:
+1. **Frontend Host**: (e.g., Cloudflare Pages, Vercel) for the React app.
+2. **Backend Host**: (e.g., Render, Railway) for the WebSocket server.
+
+*Note: The frontend must be configured with `VITE_WS_URL` to point to your production backend.*
