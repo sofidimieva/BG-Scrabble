@@ -22,7 +22,6 @@ import GameScoreboard from './components/GameScoreboard';
 // import StatusBar from './components/StatusBar';
 import GameBoard from './components/GameBoard';
 import TileRack from './components/TileRack';
-import ActionButtons from './components/ActionButtons';
 
 interface GameConfig {
   gameCode: string;
@@ -30,6 +29,9 @@ interface GameConfig {
   myName: string;
   opponentName: string;
   timerSeconds: number;
+  // Guest-only: passed from WaitingScreen after receiving START_GAME
+  guestRack?: TileData[];
+  hostTileBag?: TileData[];
 }
 
 type Screen = 'lobby' | 'waiting' | 'game';
@@ -66,6 +68,8 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
   const [winner, setWinner] = useState<string | null>(null);
   const initDoneRef = useRef(false);
   const [copied, setCopied] = useState(false);
+  const [myMoves, setMyMoves] = useState<{ words: string[]; score: number }[]>([]);
+  const [opponentMoves, setOpponentMoves] = useState<{ words: string[]; score: number }[]>([]);
 
   const handleMyTimeUp = useCallback(() => {
     if (gameOver) return;
@@ -97,12 +101,22 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
     opponentTimeLeft,
     setOpponentTime,
     formatTime,
-  } = useTimer(handleMyTimeUp, handleOpponentTimeUp, isMyTurn, config.timerSeconds);
+  } = useTimer(handleMyTimeUp, handleOpponentTimeUp, isMyTurn, !waitingForOpponent && !gameOver, config.timerSeconds);
 
   // Set custom timer
   useEffect(() => {
     setCustomTimer(config.timerSeconds);
   }, [config.timerSeconds, setCustomTimer]);
+
+  // Guest: initialize from host data passed via config (since START_GAME was consumed by WaitingScreen)
+  useEffect(() => {
+    if (!config.isHost && config.guestRack && config.hostTileBag && !initDoneRef.current) {
+      initDoneRef.current = true;
+      initializeFromHost(config.guestRack, config.hostTileBag);
+      setCustomTimer(config.timerSeconds);
+      setIsMyTurn(false);
+    }
+  }, [config.isHost, config.guestRack, config.hostTileBag, config.timerSeconds, initializeFromHost, setCustomTimer]);
 
   // Host: explicitly start the game after guest connects
   const handleStartGameClick = useCallback(() => {
@@ -140,9 +154,10 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
           syncBoard(msg.board, msg.tileBag, msg.tilesRemaining);
           setOpponentScore((prev) => prev + msg.score);
           setOpponentTime(msg.timeLeft);
+          setOpponentMoves(prev => [...prev, { words: msg.words, score: msg.score }]);
           setIsMyTurn(true);
-          setMessage(`Опонентът изигра +${msg.score} точки`);
-          setTimeout(() => setMessage(null), 2500);
+          setMessage(`Опонент: ${msg.words.join(', ')} — +${msg.score} точки`);
+          setTimeout(() => setMessage(null), 3000);
           break;
 
         case 'PASS':
@@ -251,7 +266,11 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
 
     const placed = getNewlyPlacedTiles(state.boardGrid);
     const score = calculateScore(state.boardGrid, placed);
+    const formedWords = result.words || [];
     submitWord(score);
+
+    // Add to my move history
+    setMyMoves(prev => [...prev, { words: formedWords, score }]);
 
     const committedBoard = state.boardGrid.map((row) =>
       row.map((cell) => cell.isNew ? { ...cell, isNew: false } : { ...cell }));
@@ -264,11 +283,12 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
       tileBag: state.tileBag,
       tilesRemaining: state.tilesRemaining,
       timeLeft: myTimeLeft,
+      words: formedWords,
     });
 
     setIsMyTurn(false);
-    setMessage(`+${score} точки!`);
-    setTimeout(() => setMessage(null), 2000);
+    setMessage(`✔ ${formedWords.join(', получаваш ')}  +${score} точки!`);
+    setTimeout(() => setMessage(null), 3000);
   }, [isMyTurn, gameOver, state.boardGrid, state.playerRack, state.tileBag, state.tilesRemaining, validate, submitWord, myTimeLeft, mp]);
 
   const handlePass = useCallback(() => {
@@ -444,38 +464,121 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
           </div>
         )}
 
-        {/* Only show game board/rack if not waiting and no game over
-        {!waitingForOpponent && !gameOver && !isMyTurn && !message && (
-          <div className="mx-4 mb-1 px-3 py-2 bg-slate-100 text-[#498e9c] text-sm font-bold text-center rounded-lg flex items-center justify-center gap-2">
-            <div className="flex gap-1">
-              <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
-              <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
-              <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
-            </div>
-            Ходът на {opponentName || 'опонента'}...
+        {/* Message bar and turn indicator */}
+        {!waitingForOpponent && !gameOver && (
+          <div className="px-3 py-1 flex-shrink-0">
+            {message ? (
+              <div className="px-3 py-1.5 bg-primary/20 text-primary text-xs font-bold text-center rounded-lg animate-[tile-pop_0.3s_ease-out]">
+                {message}
+              </div>
+            ) : !isMyTurn ? (
+              <div className="flex items-center justify-center gap-2 text-xs text-[#498e9c] font-bold">
+                <div className="flex gap-0.5">
+                  <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                  <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+                  <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+                </div>
+                Ходът на {opponentName || 'опонента'}...
+              </div>
+            ) : null}
           </div>
         )}
-        {message && (
-          <div className="mx-4 mb-1 px-3 py-2 bg-primary/20 text-primary text-sm font-bold text-center rounded-lg animate-[tile-pop_0.3s_ease-out]">
-            {message}
-          </div>
-        )} */}
 
         {/* Only show game elements when not waiting for opponent */}
         {!waitingForOpponent && (
           <>
-            <GameBoard board={state.boardGrid} ghostTile={isMyTurn ? ghostTile : null} />
+            {/* 3-column layout: my words | board | opponent words */}
+            <div className="flex-1 flex min-h-0">
+              {/* My word history - left panel */}
+              <div className="w-28 flex flex-col p-1 overflow-hidden">
+                <p className="text-[10px] font-bold text-primary uppercase tracking-wider text-center mb-1 flex-shrink-0">{config.myName}</p>
+                <div className="flex-1 overflow-y-auto space-y-0.5 scrollbar-thin">
+                  {myMoves.map((move, i) => (
+                    <div key={i} className="flex items-center justify-between px-1.5 py-0.5 bg-primary/10 rounded text-[10px]">
+                      <span className="font-bold text-[#0d191c] truncate">{move.words.join(', ')}</span>
+                      <span className="font-black text-primary ml-1 flex-shrink-0">+{move.score}</span>
+                    </div>
+                  ))}
+                  {myMoves.length === 0 && (
+                    <p className="text-[9px] text-slate-400 text-center italic mt-2">Няма ходове</p>
+                  )}
+                </div>
+              </div>
 
-            <footer className="bg-white p-4 pt-6 rounded-t-xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-              <TileRack tiles={state.playerRack} />
-              <ActionButtons
-                onPass={handlePass}
-                onExchange={handleExchange}
-                onPlay={handlePlay}
-                onShuffle={handleShuffle}
-                onRecall={handleRecall}
-                canPlay={hasNewTiles && isMyTurn && !gameOver}
-              />
+              {/* Game Board - center */}
+              <GameBoard board={state.boardGrid} ghostTile={isMyTurn ? ghostTile : null} />
+
+              {/* Opponent word history - right panel */}
+              <div className="w-28 flex flex-col p-1 overflow-hidden">
+                <p className="text-[10px] font-bold text-[#498e9c] uppercase tracking-wider text-center mb-1 flex-shrink-0">{opponentName || 'Опонент'}</p>
+                <div className="flex-1 overflow-y-auto space-y-0.5 scrollbar-thin">
+                  {opponentMoves.map((move, i) => (
+                    <div key={i} className="flex items-center justify-between px-1.5 py-0.5 bg-slate-100 rounded text-[10px]">
+                      <span className="font-bold text-[#0d191c] truncate">{move.words.join(', ')}</span>
+                      <span className="font-black text-[#498e9c] ml-1 flex-shrink-0">+{move.score}</span>
+                    </div>
+                  ))}
+                  {opponentMoves.length === 0 && (
+                    <p className="text-[9px] text-slate-400 text-center italic mt-2">Няма ходове</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <footer className="bg-white p-3 rounded-t-xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-2">
+                {/* Left: ПАС and СМЯНА */}
+                <div className="flex flex-col gap-1.5 flex-shrink-0">
+                  <button
+                    onClick={handlePass}
+                    className="flex items-center gap-1 px-2 py-1.5 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">skip_next</span>
+                    ПАС
+                  </button>
+                  <button
+                    onClick={handleExchange}
+                    className="flex items-center gap-1 px-2 py-1.5 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">published_with_changes</span>
+                    СМЯНА
+                  </button>
+                </div>
+
+                {/* Center: Tiles + utility buttons */}
+                <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
+                  <TileRack tiles={state.playerRack} />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleShuffle}
+                      className="flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm">shuffle</span>
+                      РАЗБЪРКАЙ
+                    </button>
+                    <button
+                      onClick={handleRecall}
+                      className="flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm">undo</span>
+                      ВЪРНИ
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right: ИГРАЙ */}
+                <button
+                  onClick={handlePlay}
+                  disabled={!hasNewTiles || !isMyTurn || gameOver}
+                  className={`flex-shrink-0 flex flex-col items-center justify-center px-4 py-3 rounded-xl font-black text-sm shadow-lg transition-all ${hasNewTiles && isMyTurn && !gameOver
+                    ? 'bg-primary text-white shadow-primary/30 hover:brightness-110 active:scale-95'
+                    : 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                    }`}
+                >
+                  <span className="material-symbols-outlined">send</span>
+                  ИГРАЙ
+                </button>
+              </div>
             </footer>
           </>
         )}
@@ -510,6 +613,8 @@ function WaitingScreen({ config, onGameStart, onExit }: {
           ...config,
           opponentName: msg.hostName,
           timerSeconds: msg.timerSeconds,
+          guestRack: msg.guestRack,
+          hostTileBag: msg.tileBag,
         });
       }
     });

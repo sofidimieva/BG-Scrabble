@@ -5,6 +5,7 @@ export function useTimer(
     onMyTimeUp: () => void,
     onOpponentTimeUp: () => void,
     isMyTurn: boolean,
+    gameActive: boolean,
     customSeconds?: number
 ) {
     const initialTime = customSeconds || TIMER_SECONDS;
@@ -14,11 +15,13 @@ export function useTimer(
     const onMyTimeUpRef = useRef(onMyTimeUp);
     const onOpponentTimeUpRef = useRef(onOpponentTimeUp);
     const isMyTurnRef = useRef(isMyTurn);
+    const gameActiveRef = useRef(gameActive);
     const initialTimeRef = useRef(initialTime);
 
     onMyTimeUpRef.current = onMyTimeUp;
     onOpponentTimeUpRef.current = onOpponentTimeUp;
     isMyTurnRef.current = isMyTurn;
+    gameActiveRef.current = gameActive;
 
     // Update initial time if custom seconds change
     useEffect(() => {
@@ -29,6 +32,9 @@ export function useTimer(
 
     useEffect(() => {
         intervalRef.current = setInterval(() => {
+            // Don't count down unless game is active
+            if (!gameActiveRef.current) return;
+
             if (isMyTurnRef.current) {
                 // Count down my time
                 setMyTimeLeft((prev) => {

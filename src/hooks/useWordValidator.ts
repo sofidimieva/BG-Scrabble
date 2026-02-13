@@ -7,7 +7,7 @@ import { isValidWord } from '../data/dictionary';
  * Word validator hook — checks placement rules AND dictionary validity.
  */
 export function useWordValidator() {
-    const validate = useCallback((board: CellData[][]): { valid: boolean; error?: string } => {
+    const validate = useCallback((board: CellData[][]): { valid: boolean; error?: string; words?: string[] } => {
         // Find all newly placed tiles
         const newTiles: { row: number; col: number }[] = [];
         for (let r = 0; r < 15; r++) {
@@ -96,7 +96,7 @@ export function useWordValidator() {
             }
         }
 
-        return { valid: true };
+        return { valid: true, words: allWords.filter(w => w.length >= 2) };
     }, []);
 
     return validate;
