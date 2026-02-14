@@ -22,6 +22,7 @@ import GameScoreboard from './components/GameScoreboard';
 // import StatusBar from './components/StatusBar';
 import GameBoard from './components/GameBoard';
 import TileRack from './components/TileRack';
+import ValentineScreen from './components/ValentineScreen';
 
 interface GameConfig {
   gameCode: string;
@@ -671,6 +672,7 @@ function WaitingScreen({ config, onGameStart, onExit }: {
 
 // ─── App Root ─────────────────────────────────────────────────────
 function App() {
+  const [showValentine, setShowValentine] = useState(true);
   const [screen, setScreen] = useState<Screen>('lobby');
   const [gameConfig, setGameConfig] = useState<GameConfig | null>(null);
 
@@ -695,6 +697,10 @@ function App() {
     setScreen('lobby');
     setGameConfig(null);
   }, []);
+
+  if (showValentine) {
+    return <ValentineScreen onDismiss={() => setShowValentine(false)} />;
+  }
 
   if (screen === 'lobby') {
     return <LobbyScreen onStartGame={handleStartGame} />;
