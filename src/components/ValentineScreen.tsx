@@ -22,7 +22,7 @@ export default function ValentineScreen({ onDismiss }: ValentineScreenProps) {
             className="fixed inset-0 z-[100] bg-[#800020] flex items-center justify-center cursor-none"
         >
             <div className="text-white text-center font-bold text-4xl max-w-4xl px-8 leading-relaxed">
-                Скъпо Мое Яудесно Прекрасно Уникално БонБонБОнБОнЧЕ ще ми бъдеш ли моята заъъъъВИНАГИ МУХАХХАХАХАХАХА
+                Скъпо Мое Чудесно Прекрасно Уникално БонБонБОнБОнЧЕ ще ми бъдеш ли моята валентинка заъъъъВИНАГИ МУХАХХАХАХАХАХА
             </div>
 
             <div
