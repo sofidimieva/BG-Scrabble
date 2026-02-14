@@ -1,157 +1,191 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { CellData } from '../types';
-import { CENTER } from '../constants';
-import { isValidWord } from '../data/dictionary';
+
+interface ValidationResult {
+    valid: boolean;
+    error?: string;
+    words?: string[];
+}
 
 /**
- * Word validator hook — checks placement rules AND dictionary validity.
+ * Custom hook for validating Bulgarian words using a client-side dictionary.
+ * 
+ * Loads the Bulgarian word list on mount and provides instant O(1) word validation
+ * using a Set data structure.
  */
 export function useWordValidator() {
-    const validate = useCallback((board: CellData[][]): { valid: boolean; error?: string; words?: string[] } => {
-        // Find all newly placed tiles
+    const [dictionary, setDictionary] = useState<Set<string> | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Load dictionary on mount
+    useEffect(() => {
+        const loadDictionary = async () => {
+            try {
+                console.log('📖 Loading Bulgarian dictionary...');
+                const response = await fetch('/bg-dictionary.txt');
+
+                if (!response.ok) {
+                    throw new Error(`Failed to load dictionary: ${response.statusText}`);
+                }
+
+                const text = await response.text();
+                const words = text.split('\n').map(w => w.trim().toLowerCase()).filter(w => w.length > 0);
+                const wordSet = new Set(words);
+
+                setDictionary(wordSet);
+                setLoading(false);
+                console.log(`✅ Dictionary loaded: ${wordSet.size.toLocaleString()} words`);
+
+                // Expose dictionary size for debugging
+                (window as any).__DICT_SIZE__ = wordSet.size;
+            } catch (err) {
+                console.error('❌ Failed to load dictionary:', err);
+                setError(err instanceof Error ? err.message : 'Unknown error');
+                setLoading(false);
+            }
+        };
+
+        loadDictionary();
+    }, []);
+
+    /**
+     * Validate words formed on the board
+     */
+    const validate = useCallback((board: CellData[][]): ValidationResult => {
+        // If dictionary is still loading, reject validation
+        if (loading) {
+            return { valid: false, error: 'Речникът все още се зарежда...' };
+        }
+
+        if (error || !dictionary) {
+            return { valid: false, error: 'Грешка при зареждане на речника' };
+        }
+
+        // Get all newly placed tiles
         const newTiles: { row: number; col: number }[] = [];
         for (let r = 0; r < 15; r++) {
             for (let c = 0; c < 15; c++) {
-                if (board[r][c].tile && board[r][c].isNew) {
+                if (board[r][c].isNew && board[r][c].tile) {
                     newTiles.push({ row: r, col: c });
                 }
             }
         }
 
         if (newTiles.length === 0) {
-            return { valid: false, error: 'Не сте поставили плочки' };
+            return { valid: false, error: 'Моля, поставете плочки на дъската' };
         }
 
-        // Check single row or column
-        const rows = new Set(newTiles.map((t) => t.row));
-        const cols = new Set(newTiles.map((t) => t.col));
-        const isHorizontal = rows.size === 1;
-        const isVertical = cols.size === 1;
+        // Check if tiles are in a single line (horizontal or vertical)
+        const rows = newTiles.map(t => t.row);
+        const cols = newTiles.map(t => t.col);
+        const isHorizontal = new Set(rows).size === 1;
+        const isVertical = new Set(cols).size === 1;
 
         if (!isHorizontal && !isVertical) {
-            return { valid: false, error: 'Плочките трябва да са на един ред или колона' };
+            return { valid: false, error: 'Плочките трябва да са на една линия' };
         }
 
-        // Check no gaps
+        // Check if tiles are contiguous (no gaps)
         if (isHorizontal) {
-            const row = newTiles[0].row;
-            const minCol = Math.min(...newTiles.map((t) => t.col));
-            const maxCol = Math.max(...newTiles.map((t) => t.col));
-            for (let c = minCol; c <= maxCol; c++) {
-                if (!board[row][c].tile) {
-                    return { valid: false, error: 'Има празнини между плочките' };
+            const row = rows[0];
+            const sortedCols = [...cols].sort((a, b) => a - b);
+            for (let i = 0; i < sortedCols.length - 1; i++) {
+                let hasGap = true;
+                for (let c = sortedCols[i]; c <= sortedCols[i + 1]; c++) {
+                    if (board[row][c].tile) {
+                        hasGap = false;
+                    }
+                }
+                if (hasGap) {
+                    return { valid: false, error: 'Плочките трябва да са свързани' };
                 }
             }
         } else {
-            const col = newTiles[0].col;
-            const minRow = Math.min(...newTiles.map((t) => t.row));
-            const maxRow = Math.max(...newTiles.map((t) => t.row));
-            for (let r = minRow; r <= maxRow; r++) {
-                if (!board[r][col].tile) {
-                    return { valid: false, error: 'Има празнини между плочките' };
+            const col = cols[0];
+            const sortedRows = [...rows].sort((a, b) => a - b);
+            for (let i = 0; i < sortedRows.length - 1; i++) {
+                let hasGap = true;
+                for (let r = sortedRows[i]; r <= sortedRows[i + 1]; r++) {
+                    if (board[r][col].tile) {
+                        hasGap = false;
+                    }
+                }
+                if (hasGap) {
+                    return { valid: false, error: 'Плочките трябва да са свързани' };
                 }
             }
         }
 
-        // Check connectivity
-        const hasCenterTile = board[CENTER][CENTER].tile !== null && !board[CENTER][CENTER].isNew;
-        const firstMove = !hasCenterTile;
+        // Extract all words formed
+        const formedWords: string[] = [];
 
-        if (firstMove) {
-            const coversCenter = newTiles.some((t) => t.row === CENTER && t.col === CENTER);
-            if (!coversCenter) {
-                return { valid: false, error: 'Първият ход трябва да минава през центъра' };
-            }
-        } else {
-            const isConnected = newTiles.some((t) => {
-                const neighbors = [
-                    [t.row - 1, t.col],
-                    [t.row + 1, t.col],
-                    [t.row, t.col - 1],
-                    [t.row, t.col + 1],
-                ];
-                return neighbors.some(([nr, nc]) => {
-                    if (nr < 0 || nr >= 15 || nc < 0 || nc >= 15) return false;
-                    const cell = board[nr][nc];
-                    return cell.tile && !cell.isNew;
-                });
-            });
+        // Main word
+        const mainWord = extractWord(board, newTiles[0].row, newTiles[0].col, isHorizontal);
+        if (mainWord.length >= 2) {
+            formedWords.push(mainWord);
+        }
 
-            if (!isConnected) {
-                return { valid: false, error: 'Думата трябва да е свързана със съществуваща' };
+        // Cross words (perpendicular to main word)
+        for (const tile of newTiles) {
+            const crossWord = extractWord(board, tile.row, tile.col, !isHorizontal);
+            if (crossWord.length >= 2) {
+                formedWords.push(crossWord);
             }
         }
 
-        // Extract all formed words and validate against dictionary
-        const allWords = extractAllWords(board, newTiles, isHorizontal);
-
-        if (allWords.length === 0) {
-            return { valid: false, error: 'Думата трябва да е поне 2 букви' };
-        }
-
-        for (const word of allWords) {
-            if (word.length < 2) continue;
-            if (!isValidWord(word)) {
-                return { valid: false, error: `"${word}" не е в речника` };
+        // Validate all formed words
+        const invalidWords: string[] = [];
+        for (const word of formedWords) {
+            if (!dictionary.has(word.toLowerCase())) {
+                invalidWords.push(word);
             }
         }
 
-        return { valid: true, words: allWords.filter(w => w.length >= 2) };
-    }, []);
+        if (invalidWords.length > 0) {
+            return {
+                valid: false,
+                error: `Невалидна дума: ${invalidWords.join(', ')}`,
+                words: formedWords
+            };
+        }
+
+        return {
+            valid: true,
+            words: formedWords
+        };
+    }, [dictionary, loading, error]);
 
     return validate;
 }
 
 /**
- * Extract all words formed by the new placement.
+ * Extract a word from the board starting at a given position
  */
-function extractAllWords(
-    board: CellData[][],
-    newTiles: { row: number; col: number }[],
-    isHorizontal: boolean
-): string[] {
-    const words: string[] = [];
-
-    // Main word
-    const mainWord = getWordAt(board, newTiles[0].row, newTiles[0].col, isHorizontal);
-    if (mainWord.length >= 2) {
-        words.push(mainWord);
-    }
-
-    // Cross words for each placed tile
-    for (const tile of newTiles) {
-        const crossWord = getWordAt(board, tile.row, tile.col, !isHorizontal);
-        if (crossWord.length >= 2) {
-            words.push(crossWord);
-        }
-    }
-
-    return words;
-}
-
-function getWordAt(board: CellData[][], row: number, col: number, horizontal: boolean): string {
+function extractWord(board: CellData[][], row: number, col: number, horizontal: boolean): string {
     const dr = horizontal ? 0 : -1;
     const dc = horizontal ? -1 : 0;
 
-    // Go backwards to find start
+    // Go backwards to find start of word
     let r = row + dr;
     let c = col + dc;
     while (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c].tile) {
         r += dr;
         c += dc;
     }
+    // Step forward to the first letter
     r -= dr;
     c -= dc;
 
-    // Collect word going forward
+    // Collect all letters going forward
+    const letters: string[] = [];
     const fdr = horizontal ? 0 : 1;
     const fdc = horizontal ? 1 : 0;
-    let word = '';
     while (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c].tile) {
-        word += board[r][c].tile!.letter;
+        letters.push(board[r][c].tile!.letter);
         r += fdr;
         c += fdc;
     }
 
-    return word;
+    return letters.join('').toLowerCase();
 }

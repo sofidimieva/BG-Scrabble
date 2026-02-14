@@ -4,8 +4,26 @@ import { readFileSync, existsSync } from 'fs';
 import { join, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import nspell from 'nspell';
+import dictionaryBg from 'dictionary-bg';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+// ─── Hunspell Dictionary Setup ────────────────────────────────────
+let spellChecker = null;
+async function loadDictionary() {
+    try {
+        const dict = await dictionaryBg;
+        spellChecker = nspell({
+            aff: Buffer.from(dict.aff),
+            dic: Buffer.from(dict.dic)
+        });
+        console.log('📚 Bulgarian dictionary loaded successfully!');
+    }
+    catch (err) {
+        console.error('❌ Failed to load dictionary:', err);
+    }
+}
+loadDictionary();
 // ─── Room Manager ─────────────────────────────────────────────────
 const rooms = new Map();
 function getOrCreateRoom(code) {
@@ -154,6 +172,24 @@ wss.on('connection', (ws) => {
                     // Clean up the room
                     removeRoom(entry.code);
                 }
+                break;
+            }
+            case 'VALIDATE_WORD': {
+                const word = msg.word;
+                let isValid = false;
+                if (spellChecker) {
+                    isValid = spellChecker.correct(word.toUpperCase());
+                }
+                else {
+                    console.warn('⚠️ Dictionary not loaded yet, rejecting validation');
+                }
+                const response = {
+                    type: 'VALIDATION_RESULT',
+                    word: word,
+                    isValid: isValid,
+                    reqId: msg.reqId
+                };
+                ws.send(JSON.stringify(response));
                 break;
             }
         }
