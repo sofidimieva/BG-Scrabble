@@ -39,7 +39,7 @@ export type GameAction =
     | { type: 'REMOVE_TILE_FROM_BOARD'; row: number; col: number }
     | { type: 'RECALL_TILES' }
     | { type: 'SHUFFLE_RACK' }
-    | { type: 'SUBMIT_WORD'; score: number }
+    | { type: 'SUBMIT_WORD'; score: number; drawnTiles: TileData[]; newBag: TileData[] }
     | { type: 'PASS_TURN' }
     | { type: 'EXCHANGE_TILES'; tileIds: string[] }
     | { type: 'DRAW_TILES' }

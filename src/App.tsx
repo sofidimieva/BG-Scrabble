@@ -15,6 +15,7 @@ import { useWordValidator } from './hooks/useWordValidator';
 import { useTimer } from './hooks/useTimer';
 import { WebSocketChannel, useMultiplayerChannel, type MultiplayerMessage } from './hooks/useMultiplayer';
 import { calculateScore, getNewlyPlacedTiles } from './utils/scoringEngine';
+import { RACK_SIZE } from './constants';
 import type { TileData } from './types';
 
 import LobbyScreen from './components/LobbyScreen';
@@ -268,7 +269,14 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
     const placed = getNewlyPlacedTiles(state.boardGrid);
     const score = calculateScore(state.boardGrid, placed);
     const formedWords = result.words || [];
-    submitWord(score);
+
+    // Compute post-draw state BEFORE dispatching to avoid stale state
+    const tilesToDraw = RACK_SIZE - state.playerRack.length;
+    const newBag = [...state.tileBag];
+    const drawnTiles = newBag.splice(0, tilesToDraw);
+    const newRack = [...state.playerRack, ...drawnTiles];
+
+    submitWord(score, drawnTiles, newBag);
 
     // Add to my move history
     setMyMoves(prev => [...prev, { words: formedWords, score }]);
@@ -280,9 +288,9 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
       type: 'SUBMIT_MOVE',
       board: committedBoard,
       score,
-      newRack: state.playerRack,
-      tileBag: state.tileBag,
-      tilesRemaining: state.tilesRemaining,
+      newRack: newRack,
+      tileBag: newBag,
+      tilesRemaining: newBag.length,
       timeLeft: myTimeLeft,
       words: formedWords,
     });
@@ -290,7 +298,7 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
     setIsMyTurn(false);
     setMessage(`✔ ${formedWords.join(', получаваш ')}  +${score} точки!`);
     setTimeout(() => setMessage(null), 3000);
-  }, [isMyTurn, gameOver, state.boardGrid, state.playerRack, state.tileBag, state.tilesRemaining, validate, submitWord, myTimeLeft, mp]);
+  }, [isMyTurn, gameOver, state.boardGrid, state.playerRack, state.tileBag, validate, submitWord, myTimeLeft, mp]);
 
   const handlePass = useCallback(() => {
     if (!isMyTurn || gameOver) return;

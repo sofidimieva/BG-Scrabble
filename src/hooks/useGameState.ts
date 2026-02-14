@@ -97,14 +97,10 @@ function gameReducer(state: GameState, action: ExtendedAction): GameState {
             return { ...state, playerRack: shuffleArray(state.playerRack) };
 
         case 'SUBMIT_WORD': {
-            const { score } = action;
+            const { score, drawnTiles, newBag } = action;
             const newBoard = state.boardGrid.map((r) =>
                 r.map((c) => (c.isNew ? { ...c, isNew: false } : { ...c }))
             );
-
-            const tilesToDraw = RACK_SIZE - state.playerRack.length;
-            const newBag = [...state.tileBag];
-            const drawnTiles = newBag.splice(0, tilesToDraw);
 
             return {
                 ...state,
@@ -206,7 +202,8 @@ export function useGameState() {
     const shuffleRack = useCallback(() => dispatch({ type: 'SHUFFLE_RACK' }), []);
 
     const submitWord = useCallback(
-        (score: number) => dispatch({ type: 'SUBMIT_WORD', score }),
+        (score: number, drawnTiles: TileData[], newBag: TileData[]) =>
+            dispatch({ type: 'SUBMIT_WORD', score, drawnTiles, newBag }),
         []
     );
 
