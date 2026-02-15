@@ -1,12 +1,12 @@
 # 🇧🇬 BG Scrabble (Скрабъл)
 
-A real-time multiplayer implementation of Scrabble (Bulgarian version) built with Modern Web Technologies.
+I coudn't find a bulgarian scrable so here is one. It uses web sockets for the connection and a prefiltered list of words which acts as the bulgarian dictionary (with around 730k entries)
 
 ![Game Screenshot](https://placehold.co/1200x630/e7f1f4/498e9c?text=BG+Scrabble)
 
 ---
 
-## 🏗 Architecture Overview
+## Architecture Overview
 
 This application uses a **Client-Heavy** architecture where the game logic resides almost entirely in the browser. The server acts as a lightweight message relay.
 
@@ -34,24 +34,15 @@ graph TD
     WS_Client <== "WebSocket (JSON)" ==> WS_Server
 ```
 
-### 1. Frontend ("The Brain")
-- **Tech Stack**: React 19, TypeScript, Vite, TailwindCSS.
-- **Responsibility**: 
-  - Manages the entire game state (Board, Rack, Score).
-  - Validates words and calculates scores using `scoringEngine.ts`.
-  - Handles Drag-and-Drop interactions via `@dnd-kit`.
-  - Sends "actions" (like `SUBMIT_MOVE`) to the opponent.
+### 1. Frontend Stack
+-  React 19, TypeScript, Vite, TailwindCSS.
 
-### 2. Backend ("The Pipe")
-- **Tech Stack**: Node.js, `ws` library.
-- **Responsibility**:
-  - **Relay**: Receives a message from Player A and immediately forwards it to Player B.
-  - **Room Management**: Groups sockets into rooms based on a 4-character Game Code.
-  - **Agnostic**: The server *does not know* the rules of Scrabble. It blindly trusts the clients.
+### 2. Backend Stack
+-  Node.js, `ws` library.
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 - **`src/components/`**: UI components (GameBoard, TileRack, Scoreboard).
 - **`src/hooks/`**: Custom hooks for logic separation.
@@ -62,7 +53,7 @@ graph TD
 
 ---
 
-## 🚀 Getting Started
+## To start: 
 
 ### Prerequisites
 - Node.js (v18+)
@@ -74,7 +65,6 @@ npm install
 ```
 
 ### Running Locally
-You need **two** terminals:
 
 **Terminal 1 (Frontend)**
 ```bash
@@ -88,10 +78,3 @@ npm run server
 # Runs on ws://localhost:3001
 ```
 
-## 🌐 Deployment Plan
-
-To deploy this application, you currently need two services:
-1. **Frontend Host**: (e.g., Cloudflare Pages, Vercel) for the React app.
-2. **Backend Host**: (e.g., Render, Railway) for the WebSocket server.
-
-*Note: The frontend must be configured with `VITE_WS_URL` to point to your production backend.*
