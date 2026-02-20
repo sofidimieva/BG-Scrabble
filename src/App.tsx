@@ -188,7 +188,7 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 0, tolerance: 10 } })
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -534,58 +534,52 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
               </div>
             </div>
 
-            <footer className="bg-white p-3 rounded-t-xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-              <div className="flex items-center gap-2">
-                {/* Left: ПАС and СМЯНА */}
-                <div className="flex flex-col gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={handlePass}
-                    className="flex items-center gap-1 px-2 py-1.5 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-sm">skip_next</span>
-                    ПАС
-                  </button>
-                  <button
-                    onClick={handleExchange}
-                    className="flex items-center gap-1 px-2 py-1.5 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-sm">published_with_changes</span>
-                    СМЯНА
-                  </button>
-                </div>
+            <footer className="bg-white pt-2 pb-3 px-3 rounded-t-xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+              {/* ИГРАЙ — full width above rack */}
+              <button
+                onClick={handlePlay}
+                disabled={!hasNewTiles || !isMyTurn || gameOver}
+                className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl font-black text-sm mb-2 shadow-md transition-all ${hasNewTiles && isMyTurn && !gameOver
+                  ? 'bg-primary text-white shadow-primary/30 hover:brightness-110 active:scale-[0.98]'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                  }`}
+              >
+                <span className="material-symbols-outlined text-base">send</span>
+                ИГРАЙ
+              </button>
 
-                {/* Center: Tiles + utility buttons */}
-                <div className="flex-1 min-w-0 flex flex-col items-center gap-1">
-                  <TileRack tiles={state.playerRack} />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleShuffle}
-                      className="flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-sm">shuffle</span>
-                      РАЗБЪРКАЙ
-                    </button>
-                    <button
-                      onClick={handleRecall}
-                      className="flex items-center gap-1 px-2 py-1 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-sm">undo</span>
-                      ВЪРНИ
-                    </button>
-                  </div>
-                </div>
+              {/* Rack */}
+              <TileRack tiles={state.playerRack} />
 
-                {/* Right: ИГРАЙ */}
+              {/* Action buttons row — below rack */}
+              <div className="flex gap-2">
                 <button
-                  onClick={handlePlay}
-                  disabled={!hasNewTiles || !isMyTurn || gameOver}
-                  className={`flex-shrink-0 flex flex-col items-center justify-center px-4 py-3 rounded-xl font-black text-sm shadow-lg transition-all ${hasNewTiles && isMyTurn && !gameOver
-                    ? 'bg-primary text-white shadow-primary/30 hover:brightness-110 active:scale-95'
-                    : 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
-                    }`}
+                  onClick={handlePass}
+                  className="flex-1 flex items-center justify-center gap-1 py-2 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
                 >
-                  <span className="material-symbols-outlined">send</span>
-                  ИГРАЙ
+                  <span className="material-symbols-outlined text-sm">skip_next</span>
+                  ПАС
+                </button>
+                <button
+                  onClick={handleExchange}
+                  className="flex-1 flex items-center justify-center gap-1 py-2 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">published_with_changes</span>
+                  СМЯНА
+                </button>
+                <button
+                  onClick={handleShuffle}
+                  className="flex-1 flex items-center justify-center gap-1 py-2 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">shuffle</span>
+                  РАЗБЪРКАЙ
+                </button>
+                <button
+                  onClick={handleRecall}
+                  className="flex-1 flex items-center justify-center gap-1 py-2 bg-slate-100 rounded-lg text-[#498e9c] font-bold text-[10px] hover:bg-slate-200 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">undo</span>
+                  ВЪРНИ
                 </button>
               </div>
             </footer>

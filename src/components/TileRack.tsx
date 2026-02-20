@@ -35,7 +35,7 @@ const SortableTile: React.FC<{ tile: TileData }> = ({ tile }) => {
     return (
         <div
             ref={setNodeRef}
-            style={style}
+            style={{ ...style, touchAction: 'none' }}
             {...attributes}
             {...listeners}
             className={`
@@ -62,7 +62,7 @@ const TileRack: React.FC<TileRackProps> = ({ tiles }) => {
     return (
         <div ref={setNodeRef}>
             <SortableContext items={tiles.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
-                <div className="flex justify-center gap-2 mb-6">
+                <div className="flex justify-center gap-2">
                     {tiles.map((tile) => (
                         <SortableTile key={tile.id} tile={tile} />
                     ))}
