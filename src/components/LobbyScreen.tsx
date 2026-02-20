@@ -19,6 +19,7 @@ const TIME_OPTIONS = [
     { label: '1:30', value: 90 },
     { label: '2:00', value: 120 },
     { label: '3:00', value: 180 },
+    { label: 'Друго', value: 0 },
 ];
 
 function generateGameCode(): string {
@@ -35,6 +36,10 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ onStartGame }) => {
     const [myName, setMyName] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const [timerSeconds, setTimerSeconds] = useState(120);
+    const [isCustomTime, setIsCustomTime] = useState(false);
+    const [customMin, setCustomMin] = useState('2');
+    const [customSec, setCustomSec] = useState('00');
+    const [timeError, setTimeError] = useState<string | null>(null);
 
     const handleCreateGame = useCallback(() => {
         setView('create-name');
@@ -46,17 +51,32 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ onStartGame }) => {
 
     const handleHostStart = useCallback(() => {
         if (myName.trim().length < 1) return;
+
+        let finalSeconds = timerSeconds;
+        if (isCustomTime) {
+            const min = parseInt(customMin) || 0;
+            const sec = parseInt(customSec) || 0;
+            finalSeconds = min * 60 + sec;
+
+            if (finalSeconds < 30) {
+                setTimeError('Минимум 30 секунди');
+                return;
+            }
+            if (finalSeconds > 900) {
+                setTimeError('Максимум 15 минути');
+                return;
+            }
+        }
+
         const code = generateGameCode();
-        // This opens the channel in App and goes directly to game screen.
-        // The host will wait there for the guest to connect via the game screen.
         onStartGame({
             gameCode: code,
             isHost: true,
             myName: myName.trim(),
             opponentName: '',
-            timerSeconds,
+            timerSeconds: finalSeconds,
         });
-    }, [myName, timerSeconds, onStartGame]);
+    }, [myName, timerSeconds, isCustomTime, customMin, customSec, onStartGame]);
 
     const handleJoinGame = useCallback(() => {
         if (joinCode.trim().length < 4 || myName.trim().length < 1) return;
@@ -174,12 +194,21 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ onStartGame }) => {
                                 <label className="block text-xs font-bold text-[#498e9c] uppercase tracking-wider mb-2">
                                     Време за ход
                                 </label>
-                                <div className="grid grid-cols-4 gap-2">
+                                <div className="grid grid-cols-5 gap-1.5">
                                     {TIME_OPTIONS.map((opt) => (
                                         <button
-                                            key={opt.value}
-                                            onClick={() => setTimerSeconds(opt.value)}
-                                            className={`py-2.5 rounded-lg font-bold text-sm transition-all ${timerSeconds === opt.value
+                                            key={opt.label}
+                                            onClick={() => {
+                                                if (opt.value === 0) {
+                                                    setIsCustomTime(true);
+                                                    setTimerSeconds(0);
+                                                } else {
+                                                    setIsCustomTime(false);
+                                                    setTimerSeconds(opt.value);
+                                                    setTimeError(null);
+                                                }
+                                            }}
+                                            className={`py-2 rounded-lg font-bold text-xs transition-all ${((!isCustomTime && timerSeconds === opt.value) || (isCustomTime && opt.value === 0))
                                                 ? 'bg-primary text-white shadow-md shadow-primary/20'
                                                 : 'bg-slate-100 text-[#498e9c] hover:bg-slate-200'
                                                 }`}
@@ -188,6 +217,47 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ onStartGame }) => {
                                         </button>
                                     ))}
                                 </div>
+
+                                {isCustomTime && (
+                                    <div className="mt-4 p-3 bg-slate-50 rounded-xl border-2 border-primary/20 animate-[tile-pop_0.2s_ease-out]">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <div className="w-16">
+                                                <input
+                                                    type="number"
+                                                    value={customMin}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.slice(0, 2);
+                                                        setCustomMin(val);
+                                                        setTimeError(null);
+                                                    }}
+                                                    className="w-full text-center py-2 bg-white border-2 border-[#e7f1f4] rounded-lg focus:border-primary focus:outline-none font-black text-lg text-[#0d191c]"
+                                                    placeholder="Мин"
+                                                />
+                                                <p className="text-[10px] text-center font-bold text-[#498e9c] mt-1 uppercase">Мин</p>
+                                            </div>
+                                            <span className="text-2xl font-black text-primary mb-5">:</span>
+                                            <div className="w-16">
+                                                <input
+                                                    type="number"
+                                                    value={customSec}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.slice(0, 2);
+                                                        setCustomSec(val);
+                                                        setTimeError(null);
+                                                    }}
+                                                    className="w-full text-center py-2 bg-white border-2 border-[#e7f1f4] rounded-lg focus:border-primary focus:outline-none font-black text-lg text-[#0d191c]"
+                                                    placeholder="Сек"
+                                                />
+                                                <p className="text-[10px] text-center font-bold text-[#498e9c] mt-1 uppercase">Сек</p>
+                                            </div>
+                                        </div>
+                                        {timeError && (
+                                            <p className="text-center text-accent-red text-[10px] font-bold mt-2 animate-bounce">
+                                                {timeError}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Create + Start button */}
