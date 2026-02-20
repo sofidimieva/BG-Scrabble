@@ -45,12 +45,13 @@ export const BOARD_LAYOUT: MultiplierType[][] = (() => {
         [14, 0], [14, 7], [14, 14],
     ];
 
-    // Double Word (ДД) — pink squares
+    // Double Word (ДД) — pink squares (including center star)
     const dw: [number, number][] = [
         [1, 1], [2, 2], [3, 3], [4, 4],
         [1, 13], [2, 12], [3, 11], [4, 10],
         [13, 1], [12, 2], [11, 3], [10, 4],
         [13, 13], [12, 12], [11, 11], [10, 10],
+        [7, 7], // center star — acts as Double Word
     ];
 
     // Triple Letter (ТБ) — dark blue squares

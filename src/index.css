@@ -36,9 +36,19 @@ body {
 
 /* Tile spring animation */
 @keyframes tile-pop {
-  0% { transform: scale(0.7); opacity: 0.5; }
-  60% { transform: scale(1.1); }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.7);
+    opacity: 0.5;
+  }
+
+  60% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .tile-placed {
@@ -54,14 +64,21 @@ body {
 /* Drag overlay */
 .drag-overlay-tile {
   transform: scale(1.1);
-  box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
   z-index: 999;
 }
 
 /* Timer pulse when low */
 @keyframes pulse-red {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .timer-low {
@@ -70,5 +87,11 @@ body {
 }
 
 /* Scrollbar hiding */
-.hide-scrollbar::-webkit-scrollbar { display: none; }
-.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

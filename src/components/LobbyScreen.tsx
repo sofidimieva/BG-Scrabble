@@ -224,10 +224,14 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ onStartGame }) => {
                                             <div className="w-16">
                                                 <input
                                                     type="number"
+                                                    min="0"
+                                                    max="15"
                                                     value={customMin}
                                                     onChange={(e) => {
-                                                        const val = e.target.value.slice(0, 2);
-                                                        setCustomMin(val);
+                                                        let val = parseInt(e.target.value) || 0;
+                                                        if (val > 15) val = 15;
+                                                        if (val < 0) val = 0;
+                                                        setCustomMin(val.toString());
                                                         setTimeError(null);
                                                     }}
                                                     className="w-full text-center py-2 bg-white border-2 border-[#e7f1f4] rounded-lg focus:border-primary focus:outline-none font-black text-lg text-[#0d191c]"
@@ -239,10 +243,14 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ onStartGame }) => {
                                             <div className="w-16">
                                                 <input
                                                     type="number"
+                                                    min="0"
+                                                    max="59"
                                                     value={customSec}
                                                     onChange={(e) => {
-                                                        const val = e.target.value.slice(0, 2);
-                                                        setCustomSec(val);
+                                                        let val = parseInt(e.target.value) || 0;
+                                                        if (val > 59) val = 59;
+                                                        if (val < 0) val = 0;
+                                                        setCustomSec(val.toString().padStart(2, '0'));
                                                         setTimeError(null);
                                                     }}
                                                     className="w-full text-center py-2 bg-white border-2 border-[#e7f1f4] rounded-lg focus:border-primary focus:outline-none font-black text-lg text-[#0d191c]"

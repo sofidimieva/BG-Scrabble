@@ -76,6 +76,39 @@ export function useWordValidator() {
             return { valid: false, error: 'Моля, поставете плочки на дъската' };
         }
 
+        // Determine whether any committed (old) tiles exist
+        let hasCommittedTiles = false;
+        for (let r = 0; r < 15 && !hasCommittedTiles; r++) {
+            for (let c = 0; c < 15 && !hasCommittedTiles; c++) {
+                if (board[r][c].tile && !board[r][c].isNew) {
+                    hasCommittedTiles = true;
+                }
+            }
+        }
+
+        // Rule 1: First word must cover the center star (7, 7)
+        if (!hasCommittedTiles) {
+            const coversCenter = newTiles.some(t => t.row === 7 && t.col === 7);
+            if (!coversCenter) {
+                return { valid: false, error: 'Първата дума трябва да покрива центъра ★' };
+            }
+        } else {
+            // Rule 2: Subsequent words must connect to existing (committed) tiles
+            const isConnected = newTiles.some(({ row, col }) => {
+                const neighbours = [
+                    [row - 1, col], [row + 1, col],
+                    [row, col - 1], [row, col + 1],
+                ];
+                return neighbours.some(([r, c]) =>
+                    r >= 0 && r < 15 && c >= 0 && c < 15 &&
+                    board[r][c].tile && !board[r][c].isNew
+                );
+            });
+            if (!isConnected) {
+                return { valid: false, error: 'Думата трябва да е свързана с вече поставени плочки' };
+            }
+        }
+
         // Check if tiles are in a single line (horizontal or vertical)
         const rows = newTiles.map(t => t.row);
         const cols = newTiles.map(t => t.col);
