@@ -110,7 +110,7 @@ const httpServer = createServer((req, res) => {
 });
 // ─── WebSocket Server (attached to HTTP server) ───────────────────
 const wss = new WebSocketServer({ server: httpServer });
-console.log(`🎮 Scrabble server running on http://localhost:${PORT}`);
+console.log(`🎮 BG Scrabble server running on http://localhost:${PORT}`);
 wss.on('connection', (ws) => {
     console.log('[WS] Client connected');
     ws.on('message', (raw) => {
