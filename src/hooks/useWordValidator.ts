@@ -23,7 +23,7 @@ export function useWordValidator() {
         const loadDictionary = async () => {
             try {
                 console.log('📖 Loading Bulgarian dictionary...');
-                const response = await fetch('/bg-dictionary.txt');
+                const response = await fetch('/words.txt');
 
                 if (!response.ok) {
                     throw new Error(`Failed to load dictionary: ${response.statusText}`);
