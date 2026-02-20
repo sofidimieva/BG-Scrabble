@@ -37,8 +37,8 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ onStartGame }) => {
     const [joinCode, setJoinCode] = useState('');
     const [timerSeconds, setTimerSeconds] = useState(120);
     const [isCustomTime, setIsCustomTime] = useState(false);
-    const [customMin, setCustomMin] = useState('2');
-    const [customSec, setCustomSec] = useState('00');
+    const [customMin, setCustomMin] = useState<string>('2');
+    const [customSec, setCustomSec] = useState<string>('00');
     const [timeError, setTimeError] = useState<string | null>(null);
 
     const handleCreateGame = useCallback(() => {
@@ -228,10 +228,15 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ onStartGame }) => {
                                                     max="15"
                                                     value={customMin}
                                                     onChange={(e) => {
-                                                        let val = parseInt(e.target.value) || 0;
-                                                        if (val > 15) val = 15;
-                                                        if (val < 0) val = 0;
-                                                        setCustomMin(val.toString());
+                                                        const raw = e.target.value;
+                                                        if (raw === '') {
+                                                            setCustomMin('');
+                                                        } else {
+                                                            let val = parseInt(raw);
+                                                            if (isNaN(val) || val < 0) val = 0;
+                                                            if (val > 15) val = 15;
+                                                            setCustomMin(val.toString());
+                                                        }
                                                         setTimeError(null);
                                                     }}
                                                     className="w-full text-center py-2 bg-white border-2 border-[#e7f1f4] rounded-lg focus:border-primary focus:outline-none font-black text-lg text-[#0d191c]"
@@ -247,10 +252,15 @@ const LobbyScreen: React.FC<LobbyScreenProps> = ({ onStartGame }) => {
                                                     max="59"
                                                     value={customSec}
                                                     onChange={(e) => {
-                                                        let val = parseInt(e.target.value) || 0;
-                                                        if (val > 59) val = 59;
-                                                        if (val < 0) val = 0;
-                                                        setCustomSec(val.toString().padStart(2, '0'));
+                                                        const raw = e.target.value;
+                                                        if (raw === '') {
+                                                            setCustomSec('');
+                                                        } else {
+                                                            let val = parseInt(raw);
+                                                            if (isNaN(val) || val < 0) val = 0;
+                                                            if (val > 59) val = 59;
+                                                            setCustomSec(val.toString().padStart(2, '0'));
+                                                        }
                                                         setTimeError(null);
                                                     }}
                                                     className="w-full text-center py-2 bg-white border-2 border-[#e7f1f4] rounded-lg focus:border-primary focus:outline-none font-black text-lg text-[#0d191c]"
