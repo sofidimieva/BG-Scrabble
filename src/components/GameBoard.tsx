@@ -9,8 +9,8 @@ interface GameBoardProps {
 
 const GameBoard: React.FC<GameBoardProps> = ({ board, ghostTile }) => {
     return (
-        <main className="flex-1 flex items-center justify-center p-2">
-            <div className="w-full max-w-md bg-[#d1e1e4] p-1 rounded-lg shadow-inner overflow-hidden scrabble-board">
+        <main className="flex-1 flex items-center justify-center">
+            <div className="w-full bg-[#d1e1e4] p-1 shadow-inner overflow-hidden scrabble-board">
                 {board.flat().map((cell) => (
                     <BoardCell
                         key={`${cell.row}-${cell.col}`}
