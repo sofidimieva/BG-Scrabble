@@ -34,6 +34,9 @@ export class WebSocketChannel {
     private _myName = '';
     private _ready = false;
     private pendingMessages: MultiplayerMessage[] = [];
+    private _joinRetries = 0;
+    private static MAX_JOIN_RETRIES = 5;
+    private static JOIN_RETRY_DELAY_MS = 2000;
 
     get gameCode() { return this._gameCode; }
     get isHost() { return this._isHost; }
@@ -45,6 +48,7 @@ export class WebSocketChannel {
         this._gameCode = gameCode;
         this._isHost = isHost;
         this._myName = myName;
+        this._joinRetries = 0;
 
         this.ws = new WebSocket(WS_URL);
 
@@ -73,6 +77,24 @@ export class WebSocketChannel {
             } catch {
                 return;
             }
+
+            // Guest: retry JOIN if room doesn't exist yet (host may not have created it yet)
+            if (
+                !this._isHost &&
+                msg.type === 'ERROR' &&
+                msg.error === 'Стаята не съществува' &&
+                this._joinRetries < WebSocketChannel.MAX_JOIN_RETRIES
+            ) {
+                this._joinRetries++;
+                console.log(`[WS] Room not found, retrying JOIN... (${this._joinRetries}/${WebSocketChannel.MAX_JOIN_RETRIES})`);
+                setTimeout(() => {
+                    if (this._ready) {
+                        this.send({ type: 'JOIN', gameCode: this._gameCode, playerName: this._myName });
+                    }
+                }, WebSocketChannel.JOIN_RETRY_DELAY_MS);
+                return; // suppress the error from handlers during retries
+            }
+
             // Notify all registered handlers
             this.handlers.forEach(h => h(msg));
         };
@@ -95,6 +117,7 @@ export class WebSocketChannel {
         this._ready = false;
         this.handlers.clear();
         this.pendingMessages = [];
+        this._joinRetries = 0;
     }
 
     send(msg: MultiplayerMessage) {
