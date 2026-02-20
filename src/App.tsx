@@ -498,8 +498,8 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
           <>
             {/* 3-column layout: my words | board | opponent words */}
             <div className="flex-1 flex min-h-0">
-              {/* My word history - left panel */}
-              <div className="w-28 flex flex-col p-1 overflow-hidden">
+              {/* My word history - left panel — hidden on mobile */}
+              <div className="hidden sm:flex w-28 flex-col p-1 overflow-hidden">
                 <p className="text-[10px] font-bold text-primary uppercase tracking-wider text-center mb-1 flex-shrink-0">{config.myName}</p>
                 <div className="flex-1 overflow-y-auto space-y-0.5 scrollbar-thin">
                   {myMoves.map((move, i) => (
@@ -517,8 +517,8 @@ function GameScreen({ config, onExit }: { config: GameConfig; onExit: () => void
               {/* Game Board - center */}
               <GameBoard board={state.boardGrid} ghostTile={isMyTurn ? ghostTile : null} />
 
-              {/* Opponent word history - right panel */}
-              <div className="w-28 flex flex-col p-1 overflow-hidden">
+              {/* Opponent word history - right panel — hidden on mobile */}
+              <div className="hidden sm:flex w-28 flex-col p-1 overflow-hidden">
                 <p className="text-[10px] font-bold text-[#498e9c] uppercase tracking-wider text-center mb-1 flex-shrink-0">{opponentName || 'Опонент'}</p>
                 <div className="flex-1 overflow-y-auto space-y-0.5 scrollbar-thin">
                   {opponentMoves.map((move, i) => (
